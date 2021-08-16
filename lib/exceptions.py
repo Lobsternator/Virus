@@ -1,0 +1,3 @@
+
+class WindowNotFoundError(Exception):
+    pass
