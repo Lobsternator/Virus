@@ -1,16 +1,26 @@
-import pyautogui, random, win32gui, win32con
+import random, noise, win32gui, win32con
+from .monitorInfo import MonitorInfo
 from typing import List, Union
-
-SCREEN_SIZE = pyautogui.size()
 
 def path_exists_in_list(path : str, path_list : List[str]) -> bool:
     return any([path.find(listed_path) != -1 for listed_path in path_list])
 
+def clamp(value : float, value_min : float, value_max : float) -> float:
+    return min(max(value, value_min), value_max)
+
+def constrain(value : float, in_min : float, in_max : float, out_min : float, out_max : float) -> float:
+    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
 class WindowApp():
-    def __init__(self, hwnd : int, exe_path : str) -> None:
+    def __init__(self, hwnd : int, exe_path : str, monitor_info : MonitorInfo) -> None:
         self.hwnd = hwnd
         self.exe_path = exe_path
+        self.monitor_info = monitor_info
         self.valid = False
+
+        random_sample = random.sample(range(0, 1000), 2)
+        self.noise_time_x = random_sample[0]
+        self.noise_time_y = random_sample[1]
 
     @property
     def title(self) -> Union[str, None]:
@@ -91,7 +101,7 @@ class WindowApp():
         return result
 
     def validate(self, blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
-        if self.exe_path is None or self.title == '':
+        if self.exe_path is None or self.monitor_info is None or self.title == '':
             self.valid = False; return
             
         if path_exists_in_list(self.exe_path, whitelisted_paths):
@@ -99,18 +109,48 @@ class WindowApp():
 
         self.valid = not path_exists_in_list(self.exe_path, blacklisted_paths)
 
+    def move(self, x : int, y : int) -> None:
+        if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
+            return
+
+        try:
+            win32gui.MoveWindow(self.hwnd, int(x), int(y), self.width, self.height, 1)
+
+        except Exception as e:
+            if e.args[0] == 5:
+                print(f"WARNING: No permission to move window \'{self.title}\' at \'{self.exe_path}\'!")
+            else:
+                raise e
+
     def move_random(self) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
-        pos_x = random.randint(0, SCREEN_SIZE[0] - self.width)
-        pos_y = random.randint(0, SCREEN_SIZE[1] - self.height)
+        work_area = self.monitor_info.work_area
+        monitor_rect = self.monitor_info.monitor_rect
 
-        try:
-            win32gui.MoveWindow(self.hwnd, pos_x, pos_y, int(self.width), int(self.height), 1)
+        pos_x = random.randint(5, max(work_area[0] - self.width  - 5, 5))
+        pos_y = random.randint(5, max(work_area[1] - self.height - 5, 5))
 
-        except Exception as e:
-            if e.args[0] == 5:
-                print(f"WARNING: No permission to move window {self.title}")
-            else:
-                raise e
+        self.move(monitor_rect[0] + pos_x, monitor_rect[1] + pos_y)
+
+    def move_perlin_random(self, speed : float, octaves=1, persistence=0.5, lacunarity=2, base=0) -> None:
+        if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
+            return
+
+        noise_x = noise.pnoise2(self.noise_time_x, self.noise_time_x, 
+            octaves=octaves, persistence=persistence, lacunarity=lacunarity, base=base)
+
+        noise_y = noise.pnoise2(self.noise_time_y, self.noise_time_y, 
+            octaves=octaves, persistence=persistence, lacunarity=lacunarity, base=base)
+
+        self.noise_time_x += speed
+        self.noise_time_y += speed
+
+        work_area = self.monitor_info.work_area
+        monitor_rect = self.monitor_info.monitor_rect
+
+        noise_x = constrain(clamp(noise_x, -0.75, 0.75), -0.75, 0.75, 5, max(work_area[0] - self.width  - 5, 5))
+        noise_y = constrain(clamp(noise_y, -0.75, 0.75), -0.75, 0.75, 5, max(work_area[1] - self.height - 5, 5))
+
+        self.move(monitor_rect[0] + noise_x, monitor_rect[1] + noise_y)

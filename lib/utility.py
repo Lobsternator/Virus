@@ -1,23 +1,24 @@
-import pyautogui, win32process, wmi
+import pyautogui, win32process, win32api, win32gui, psutil
+from .monitorInfo import MonitorInfo
 from .windowApp import WindowApp
-from os.path import realpath
 from typing import Dict, List, Union
 
-_c = wmi.WMI()
-
 def get_window_executable_path(window) -> Union[str, None]:
-    exe_path = None
-
     pid = win32process.GetWindowThreadProcessId(window._hWnd)[1]
-    query = _c.query('SELECT ExecutablePath FROM Win32_Process WHERE ProcessId = %s' % str(pid))
+    
+    try:
+        return psutil.Process(pid).exe()
 
-    if len(query) > 0:
-        exe_path = query[0].ExecutablePath
+    except Exception as e:
+        print(f"WARNING: Error while getting executable path for window {window.title}! Error: {e}")
+        return None
 
-        if exe_path is not None:
-            exe_path = realpath(exe_path)
-
-    return exe_path
+def get_monitor_info(hwnd : int, exe_path : str) -> Union[MonitorInfo, None]:
+    try:
+        return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
+    except Exception as e:
+        print(f"WARNING: Error while getting monitor info for window \'{win32gui.GetWindowText(hwnd)}\' at \'{exe_path}\'! Error: {e}")
+        return None
 
 def process_window_updates(windows : Dict[int, WindowApp], blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
     win32_windows : List = pyautogui.getAllWindows()
@@ -28,11 +29,12 @@ def process_window_updates(windows : Dict[int, WindowApp], blacklisted_paths : L
         if new_window is None:
             hwnd = win32_window._hWnd
             exe_path = get_window_executable_path(win32_window)
+            monitor_info = get_monitor_info(hwnd, exe_path)
             
-            new_window = WindowApp(hwnd, exe_path)
+            new_window = WindowApp(hwnd, exe_path, monitor_info)
             new_window.validate(blacklisted_paths, whitelisted_paths)
 
-            windows[win32_window._hWnd] = new_window
+            windows[hwnd] = new_window
 
     windows_to_pop = []
     for hwnd in windows.keys():

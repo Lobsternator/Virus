@@ -8,9 +8,13 @@ from typing import Dict
 
 windows : Dict[int, "WindowApp"] = {}
 
-REFRESH_RATE = 1
+NOISE_SPEED = 0.1
 if len(sys.argv) > 1:
-    REFRESH_RATE = float(sys.argv[1])
+    NOISE_SPEED = float(sys.argv[1])
+
+REFRESH_RATE = 60
+if len(sys.argv) > 2:
+    REFRESH_RATE = float(sys.argv[2])
 
 BLACKLISTED_PATHS = [
     "C:/Windows",
@@ -18,21 +22,20 @@ BLACKLISTED_PATHS = [
     "C:/Program Files (x86)/Windows"
 ]
 WHITELISTED_PATHS = [
-    "C:/Windows/explorer.exe",
-    "C:/Program Files/WindowsApps"
+    "C:/Windows/explorer.exe"
 ]
-if len(sys.argv) > 2:
-    BLACKLISTED_PATHS.extend(sys.argv[2:])
+if len(sys.argv) > 3:
+    BLACKLISTED_PATHS.extend(sys.argv[3:])
 
 BLACKLISTED_PATHS = [abspath(path) if isabs(path) else relpath(path) for path in BLACKLISTED_PATHS]
 WHITELISTED_PATHS = [abspath(path) if isabs(path) else relpath(path) for path in WHITELISTED_PATHS]
 
-def main() -> None:    
+def main(dt : float) -> None:    
     for window in windows.values():
         if not window.valid:
             continue
 
-        window.move_random()
+        window.move_perlin_random(dt * NOISE_SPEED, octaves=4, persistence=5, lacunarity=1, base=15)
 
 if __name__ == "__main__":
     clock = pytime.Clock()
@@ -46,7 +49,7 @@ if __name__ == "__main__":
         last_t = time.time()
         
         utility.process_window_updates(windows, BLACKLISTED_PATHS, WHITELISTED_PATHS)
-        main()
+        main(delta_time)
 
         clock.tick(REFRESH_RATE)
         t = time.time()
