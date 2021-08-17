@@ -26,11 +26,10 @@ def process_window_updates(windows : Dict[int, WindowApp], blacklisted_paths : L
         new_window : WindowApp = windows.get(win32_window._hWnd, None)
 
         if new_window is None:
-            title = win32_window.title
             hwnd = win32_window._hWnd
             exe_path = get_window_executable_path(win32_window)
             
-            new_window = WindowApp(title, hwnd, exe_path)
+            new_window = WindowApp(hwnd, exe_path)
             new_window.validate(blacklisted_paths, whitelisted_paths)
 
             windows[win32_window._hWnd] = new_window

@@ -3,7 +3,7 @@ import lib.utility as utility
 from lib.windowApp import WindowApp
 with contextlib.redirect_stdout(None):
     from pygame import time as pytime
-from os.path import realpath, isabs
+from os.path import abspath, relpath, isabs
 from typing import Dict
 
 windows : Dict[int, "WindowApp"] = {}
@@ -24,15 +24,15 @@ WHITELISTED_PATHS = [
 if len(sys.argv) > 2:
     BLACKLISTED_PATHS.extend(sys.argv[2:])
 
-BLACKLISTED_PATHS = [realpath(path) if isabs(path) else path for path in BLACKLISTED_PATHS]
-WHITELISTED_PATHS = [realpath(path) if isabs(path) else path for path in WHITELISTED_PATHS]
+BLACKLISTED_PATHS = [abspath(path) if isabs(path) else relpath(path) for path in BLACKLISTED_PATHS]
+WHITELISTED_PATHS = [abspath(path) if isabs(path) else relpath(path) for path in WHITELISTED_PATHS]
 
 def main() -> None:    
     for window in windows.values():
         if not window.valid:
             continue
 
-        print(window.title)
+        window.move_random()
 
 if __name__ == "__main__":
     clock = pytime.Clock()
