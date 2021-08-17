@@ -1,7 +1,6 @@
-import pyautogui, win32process, win32api, win32gui, psutil
+import win32process, win32api, win32gui, psutil
 from .monitorInfo import MonitorInfo
-from .windowApp import WindowApp
-from typing import Dict, List, Union
+from typing import List, Union
 
 def get_window_executable_path(window) -> Union[str, None]:
     pid = win32process.GetWindowThreadProcessId(window._hWnd)[1]
@@ -20,28 +19,11 @@ def get_monitor_info(hwnd : int, exe_path : str) -> Union[MonitorInfo, None]:
         print(f"WARNING: Error while getting monitor info for window \'{win32gui.GetWindowText(hwnd)}\' at \'{exe_path}\'! Error: {e}")
         return None
 
-def process_window_updates(windows : Dict[int, WindowApp], blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
-    win32_windows : List = pyautogui.getAllWindows()
+def path_exists_in_list(path : str, path_list : List[str]) -> bool:
+    return any([path.find(listed_path) != -1 for listed_path in path_list])
 
-    for win32_window in win32_windows:
-        new_window : WindowApp = windows.get(win32_window._hWnd, None)
+def clamp(value : float, value_min : float, value_max : float) -> float:
+    return min(max(value, value_min), value_max)
 
-        if new_window is None:
-            hwnd = win32_window._hWnd
-            exe_path = get_window_executable_path(win32_window)
-            monitor_info = get_monitor_info(hwnd, exe_path)
-            
-            new_window = WindowApp(hwnd, exe_path, monitor_info)
-            new_window.validate(blacklisted_paths, whitelisted_paths)
-
-            windows[hwnd] = new_window
-
-    windows_to_pop = []
-    for hwnd in windows.keys():
-        found_window = len([w for w in win32_windows if w._hWnd == hwnd]) > 0
-
-        if not found_window:
-            windows_to_pop.append(hwnd)
-
-    for hwnd in windows_to_pop:
-        windows.pop(hwnd)
+def constrain(value : float, in_min : float, in_max : float, out_min : float, out_max : float) -> float:
+    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min

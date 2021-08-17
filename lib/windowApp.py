@@ -1,15 +1,7 @@
 import random, noise, win32gui, win32con
 from .monitorInfo import MonitorInfo
+from .utility import path_exists_in_list, clamp, constrain
 from typing import List, Union
-
-def path_exists_in_list(path : str, path_list : List[str]) -> bool:
-    return any([path.find(listed_path) != -1 for listed_path in path_list])
-
-def clamp(value : float, value_min : float, value_max : float) -> float:
-    return min(max(value, value_min), value_max)
-
-def constrain(value : float, in_min : float, in_max : float, out_min : float, out_max : float) -> float:
-    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 class WindowApp():
     def __init__(self, hwnd : int, exe_path : str, monitor_info : MonitorInfo) -> None:
@@ -104,6 +96,9 @@ class WindowApp():
         if self.exe_path is None or self.monitor_info is None or self.title == '':
             self.valid = False; return
             
+        if self.exe_path.find("explorer.exe") != -1 and self.title == "Drag":
+            self.valid = False; return
+
         if path_exists_in_list(self.exe_path, whitelisted_paths):
             self.valid = True; return
 
