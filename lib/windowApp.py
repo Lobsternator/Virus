@@ -38,59 +38,35 @@ class WindowApp():
         return rect[3] - rect[1]
 
     @property
-    def is_maximized(self) -> Union[int, None]:
+    def is_maximized(self) -> Union[bool, None]:
         if not win32gui.IsWindow(self.hwnd):
             return None
 
         tup = win32gui.GetWindowPlacement(self.hwnd)
-        result = None
-
-        if tup[1] == win32con.SW_SHOWMAXIMIZED:
-            result = 1
-        else:
-            result = 0
-
-        return result
+        return tup[1] == win32con.SW_SHOWMAXIMIZED
 
     @property
-    def is_minimized(self) -> Union[int, None]:
+    def is_minimized(self) -> Union[bool, None]:
         if not win32gui.IsWindow(self.hwnd):
             return None
 
         tup = win32gui.GetWindowPlacement(self.hwnd)
-        result = None
-
-        if tup[1] == win32con.SW_SHOWMINIMIZED:
-            result = 1
-        else:
-            result = 0
-
-        return result
+        return tup[1] == win32con.SW_SHOWMINIMIZED
 
     @property
-    def is_foreground(self) -> Union[int, None]:
+    def is_foreground(self) -> Union[bool, None]:
         if not win32gui.IsWindow(self.hwnd):
             return None
 
-        if win32gui.GetForegroundWindow() == self.hwnd:
-            return 1
-        else:
-            return 0
+        return win32gui.GetForegroundWindow() == self.hwnd
 
     @property
-    def is_normal(self) -> Union[int, None]:
+    def is_normal(self) -> Union[bool, None]:
         if not win32gui.IsWindow(self.hwnd):
             return None
 
         tup = win32gui.GetWindowPlacement(self.hwnd)
-        result = None
-
-        if tup[1] == win32con.SW_SHOWNORMAL:
-            result = 1
-        else:
-            result = 0
-
-        return result
+        return tup[1] == win32con.SW_SHOWNORMAL
 
     def validate(self, blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
         if self.exe_path is None or self.monitor_info is None or self.title == '':
@@ -113,21 +89,19 @@ class WindowApp():
 
         except Exception as e:
             if e.args[0] == 5:
-                print(f"WARNING: No permission to move window \'{self.title}\' at \'{self.exe_path}\'!")
+                print(f"WARNING: No permission to move window: \'{self.title}\' at \'{self.exe_path}\'!")
             else:
-                print(f"ERROR: Error raised while trying to move window \'{self.title}\' at \'{self.exe_path}\'!")
+                print(f"ERROR: Error raised while trying to move window: \'{self.title}\' at \'{self.exe_path}\'!")
 
     def move_random(self) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
         work_area = self.monitor_info.work_area
-        monitor_rect = self.monitor_info.monitor_rect
+        pos_x = random.randint(5, max(work_area[2] - self.width  - 5, 5))
+        pos_y = random.randint(5, max(work_area[3] - self.height - 5, 5))
 
-        pos_x = random.randint(work_area[0] + 5, max(work_area[2] - self.width  - 5, 5))
-        pos_y = random.randint(work_area[1] + 5, max(work_area[3] - self.height - 5, 5))
-
-        self.move(monitor_rect[0] + pos_x, monitor_rect[1] + pos_y)
+        self.move(work_area[0] + pos_x, work_area[1] + pos_y)
 
     def move_simplex_random(self, speed : float, octaves=1, persistence=0.5, lacunarity=2, base=0) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
@@ -143,9 +117,7 @@ class WindowApp():
         self.noise_time_y += speed
 
         work_area = self.monitor_info.work_area
-        monitor_rect = self.monitor_info.monitor_rect
+        noise_x = constrain(noise_x, -1, 1, 5, max(work_area[2] - self.width  - 5, 5))
+        noise_y = constrain(noise_y, -1, 1, 5, max(work_area[3] - self.height - 5, 5))
 
-        noise_x = constrain(noise_x, -1, 1, work_area[0] + 5, max(work_area[2] - self.width  - 5, 5))
-        noise_y = constrain(noise_y, -1, 1, work_area[1] + 5, max(work_area[3] - self.height - 5, 5))
-
-        self.move(monitor_rect[0] + noise_x, monitor_rect[1] + noise_y)
+        self.move(work_area[0] + noise_x, work_area[1] + noise_y)

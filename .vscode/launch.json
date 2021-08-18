@@ -13,7 +13,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
-            "args": ["0.2", "60", "Microsoft VS Code"],
+            "args": ["-s", "0.2", "-r", "60", "-b", "Microsoft VS Code"],
             "console": "integratedTerminal"
         }
     ]

@@ -1,4 +1,27 @@
-import sys, contextlib, pyautogui, time
+import sys, argparse
+
+parser = argparse.ArgumentParser(description='Randomly moves windows using simpelx noise.')
+parser.add_argument('--speed', '-s', type=float, default=0.2,
+                    help='speed of the random movement of windows')
+
+parser.add_argument('--refresh-rate', '-r', type=float, default=60.0,
+                    help='number of updates per second')
+
+parser.add_argument('--blacklist', '-b', nargs='+', type=str, default=[],
+                    help='blacklisted executable paths')
+
+parser.add_argument('--whitelist', '-w', nargs='+', type=str, default=[],
+                    help='whitelisted executable paths, overwrites blacklisted paths')
+
+try:
+    args = parser.parse_args(sys.argv[1:])
+except SystemExit as e:
+    if not getattr(sys, 'frozen', False):
+        input()
+
+    sys.exit(e.code)
+
+import contextlib, pyautogui, time
 import lib.utility as utility
 from lib.windowApp import WindowApp
 with contextlib.redirect_stdout(None):
@@ -6,26 +29,22 @@ with contextlib.redirect_stdout(None):
 from os.path import abspath, relpath, isabs
 from typing import Dict, List
 
-windows : Dict[int, "WindowApp"] = {}
+windows : Dict[int, WindowApp] = {}
 
-NOISE_SPEED = 0.2
-if len(sys.argv) > 1:
-    NOISE_SPEED = float(sys.argv[1])
-
-REFRESH_RATE = 60
-if len(sys.argv) > 2:
-    REFRESH_RATE = float(sys.argv[2])
+NOISE_SPEED = args.speed
+REFRESH_RATE = args.refresh_rate
 
 BLACKLISTED_PATHS = [
     "C:/Windows",
     "C:/Program Files/Windows",
     "C:/Program Files (x86)/Windows"
 ]
+BLACKLISTED_PATHS.extend(args.blacklist)
+
 WHITELISTED_PATHS = [
     "C:/Windows/explorer.exe"
 ]
-if len(sys.argv) > 3:
-    BLACKLISTED_PATHS.extend(sys.argv[3:])
+WHITELISTED_PATHS.extend(args.whitelist)
 
 BLACKLISTED_PATHS = [abspath(path) if isabs(path) else relpath(path) for path in BLACKLISTED_PATHS]
 WHITELISTED_PATHS = [abspath(path) if isabs(path) else relpath(path) for path in WHITELISTED_PATHS]
