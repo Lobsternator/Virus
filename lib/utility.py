@@ -8,15 +8,19 @@ def get_window_executable_path(window) -> Union[str, None]:
     try:
         return psutil.Process(pid).exe()
 
-    except Exception as e:
-        print(f"WARNING: Error while getting executable path for window {window.title}! Error: {e}")
+    except psutil.NoSuchProcess:
+        print("WARNING: Couldn't find executable path!")
         return None
 
 def get_monitor_info(hwnd : int, exe_path : str) -> Union[MonitorInfo, None]:
     try:
         return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
     except Exception as e:
-        print(f"WARNING: Error while getting monitor info for window \'{win32gui.GetWindowText(hwnd)}\' at \'{exe_path}\'! Error: {e}")
+        if e.args[0] == 1461:
+            print(f"WARNING: Couldn't find monitor info!")
+        else:
+            print(f"ERROR: Error raised while getting monitor info for window \'{win32gui.GetWindowText(hwnd)}\' at \'{exe_path}\'! Error: {e}")
+
         return None
 
 def path_exists_in_list(path : str, path_list : List[str]) -> bool:

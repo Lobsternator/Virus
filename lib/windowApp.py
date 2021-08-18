@@ -1,6 +1,6 @@
 import random, noise, win32gui, win32con
 from .monitorInfo import MonitorInfo
-from .utility import path_exists_in_list, clamp, constrain
+from .utility import path_exists_in_list, constrain
 from typing import List, Union
 
 class WindowApp():
@@ -95,7 +95,7 @@ class WindowApp():
     def validate(self, blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
         if self.exe_path is None or self.monitor_info is None or self.title == '':
             self.valid = False; return
-            
+        
         if self.exe_path.find("explorer.exe") != -1 and self.title == "Drag":
             self.valid = False; return
 
@@ -115,7 +115,7 @@ class WindowApp():
             if e.args[0] == 5:
                 print(f"WARNING: No permission to move window \'{self.title}\' at \'{self.exe_path}\'!")
             else:
-                raise e
+                print(f"ERROR: Error raised while trying to move window \'{self.title}\' at \'{self.exe_path}\'!")
 
     def move_random(self) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
@@ -124,19 +124,19 @@ class WindowApp():
         work_area = self.monitor_info.work_area
         monitor_rect = self.monitor_info.monitor_rect
 
-        pos_x = random.randint(5, max(work_area[0] - self.width  - 5, 5))
-        pos_y = random.randint(5, max(work_area[1] - self.height - 5, 5))
+        pos_x = random.randint(work_area[0] + 5, max(work_area[2] - self.width  - 5, 5))
+        pos_y = random.randint(work_area[1] + 5, max(work_area[3] - self.height - 5, 5))
 
         self.move(monitor_rect[0] + pos_x, monitor_rect[1] + pos_y)
 
-    def move_perlin_random(self, speed : float, octaves=1, persistence=0.5, lacunarity=2, base=0) -> None:
+    def move_simplex_random(self, speed : float, octaves=1, persistence=0.5, lacunarity=2, base=0) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
-        noise_x = noise.pnoise2(self.noise_time_x, self.noise_time_x, 
+        noise_x = noise.snoise2(self.noise_time_x, self.noise_time_x, 
             octaves=octaves, persistence=persistence, lacunarity=lacunarity, base=base)
 
-        noise_y = noise.pnoise2(self.noise_time_y, self.noise_time_y, 
+        noise_y = noise.snoise2(self.noise_time_y, self.noise_time_y, 
             octaves=octaves, persistence=persistence, lacunarity=lacunarity, base=base)
 
         self.noise_time_x += speed
@@ -145,7 +145,7 @@ class WindowApp():
         work_area = self.monitor_info.work_area
         monitor_rect = self.monitor_info.monitor_rect
 
-        noise_x = constrain(clamp(noise_x, -0.75, 0.75), -0.75, 0.75, 5, max(work_area[0] - self.width  - 5, 5))
-        noise_y = constrain(clamp(noise_y, -0.75, 0.75), -0.75, 0.75, 5, max(work_area[1] - self.height - 5, 5))
+        noise_x = constrain(noise_x, -1, 1, work_area[0] + 5, max(work_area[2] - self.width  - 5, 5))
+        noise_y = constrain(noise_y, -1, 1, work_area[1] + 5, max(work_area[3] - self.height - 5, 5))
 
         self.move(monitor_rect[0] + noise_x, monitor_rect[1] + noise_y)

@@ -8,7 +8,7 @@ from typing import Dict, List
 
 windows : Dict[int, "WindowApp"] = {}
 
-NOISE_SPEED = 0.1
+NOISE_SPEED = 0.2
 if len(sys.argv) > 1:
     NOISE_SPEED = float(sys.argv[1])
 
@@ -61,7 +61,7 @@ def main(dt : float) -> None:
         if not window.valid:
             continue
 
-        window.move_perlin_random(dt * NOISE_SPEED, octaves=4, persistence=5, lacunarity=1, base=15)
+        window.move_simplex_random(dt * NOISE_SPEED, octaves=3, persistence=12, lacunarity=0.4, base=0)
 
 if __name__ == "__main__":
     clock = pytime.Clock()
