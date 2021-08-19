@@ -6,10 +6,10 @@ __description__ = "Randomly moves windows using smooth noise."
 import sys, argparse
 
 parser = argparse.ArgumentParser(description=__description__)
-parser.add_argument('--speed',        '-s', nargs=1,   type=float, default=0.2,
+parser.add_argument('--speed',        '-s', nargs=1,   type=float, default=[0.2],
                     help='speed of the random movement of windows')
 
-parser.add_argument('--refresh-rate', '-r', nargs=1,   type=float, default=60.0,
+parser.add_argument('--refresh-rate', '-r', nargs=1,   type=float, default=[60.0],
                     help='number of updates per second')
 
 parser.add_argument('--blacklist',    '-b', nargs='+', type=str,   default=[],
@@ -30,8 +30,8 @@ from typing import Dict, List
 
 windows : Dict[int, WindowApp] = {}
 
-NOISE_SPEED : float = args.speed
-REFRESH_RATE : float = args.refresh_rate
+NOISE_SPEED : float = args.speed[0]
+REFRESH_RATE : float = args.refresh_rate[0]
 
 BLACKLISTED_PATHS = [
     "C:/Windows",
