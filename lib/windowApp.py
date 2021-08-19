@@ -87,7 +87,7 @@ class WindowApp():
         try:
             win32gui.MoveWindow(self.hwnd, int(x), int(y), self.width, self.height, 1)
 
-        except Exception as e:
+        except win32gui.error as e:
             if e.args[0] == 5:
                 print(f"WARNING: No permission to move window: \'{self.title}\' at \'{self.exe_path}\'!")
             else:

@@ -6,25 +6,19 @@ __description__ = "Randomly moves windows using smooth noise."
 import sys, argparse
 
 parser = argparse.ArgumentParser(description=__description__)
-parser.add_argument('--speed', '-s', type=float, default=0.2,
+parser.add_argument('--speed',        '-s', nargs=1,   type=float, default=0.2,
                     help='speed of the random movement of windows')
 
-parser.add_argument('--refresh-rate', '-r', type=float, default=60.0,
+parser.add_argument('--refresh-rate', '-r', nargs=1,   type=float, default=60.0,
                     help='number of updates per second')
 
-parser.add_argument('--blacklist', '-b', nargs='+', type=str, default=[],
+parser.add_argument('--blacklist',    '-b', nargs='+', type=str,   default=[],
                     help='blacklisted executable paths')
 
-parser.add_argument('--whitelist', '-w', nargs='+', type=str, default=[],
+parser.add_argument('--whitelist',    '-w', nargs='+', type=str,   default=[],
                     help='whitelisted executable paths, overwrites blacklisted paths')
 
-try:
-    args = parser.parse_args(sys.argv[1:])
-except SystemExit as e:
-    if not getattr(sys, 'frozen', False):
-        input()
-
-    sys.exit(e.code)
+args = parser.parse_args(sys.argv[1:])
 
 import contextlib, pyautogui, time
 import lib.utility as utility
@@ -90,16 +84,17 @@ def main(dt : float) -> None:
 if __name__ == "__main__":
     clock = pytime.Clock()
 
-    t = 1/REFRESH_RATE
-    last_t = 0
+    t_end = 1/REFRESH_RATE
+    t_start = 0
     delta_time = 1/REFRESH_RATE
     
     while True:
-        delta_time = t - last_t
-        last_t = time.time()
+        t_start = time.time()
 
         process_window_updates()
         main(delta_time)
 
         clock.tick(REFRESH_RATE)
-        t = time.time()
+        t_end = time.time()
+        
+        delta_time = t_end - t_start

@@ -15,7 +15,7 @@ def get_window_executable_path(window) -> Union[str, None]:
 def get_monitor_info(hwnd : int, exe_path : str) -> Union[MonitorInfo, None]:
     try:
         return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
-    except Exception as e:
+    except win32api.error as e:
         if e.args[0] == 1461:
             print(f"WARNING: Couldn't find monitor info for window: \'{win32gui.GetWindowText(hwnd)}\'!")
         else:
