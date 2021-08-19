@@ -1,6 +1,11 @@
+__author__ = "Julius Edvardsson"
+__version__ = "0.1a"
+__copyright__ = "Copyright Virus 2021 (©)"
+__description__ = "Randomly moves windows using smooth noise."
+
 import sys, argparse
 
-parser = argparse.ArgumentParser(description='Randomly moves windows using simpelx noise.')
+parser = argparse.ArgumentParser(description=__description__)
 parser.add_argument('--speed', '-s', type=float, default=0.2,
                     help='speed of the random movement of windows')
 
@@ -31,8 +36,8 @@ from typing import Dict, List
 
 windows : Dict[int, WindowApp] = {}
 
-NOISE_SPEED = args.speed
-REFRESH_RATE = args.refresh_rate
+NOISE_SPEED : float = args.speed
+REFRESH_RATE : float = args.refresh_rate
 
 BLACKLISTED_PATHS = [
     "C:/Windows",

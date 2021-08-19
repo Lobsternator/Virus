@@ -1,1 +1,1 @@
-pyinstaller ./main.py --name Virus --onefile
+python -OO -m PyInstaller "./main.py" --onefile --name "Virus" --upx-dir "C:\Program Files\UPX"
