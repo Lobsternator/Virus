@@ -69,10 +69,16 @@ class WindowApp():
         return tup[1] == win32con.SW_SHOWNORMAL
 
     def validate(self, blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
-        if self.exe_path is None or self.monitor_info is None or self.title == '':
+        if self.exe_path is None or self.monitor_info is None:
             self.valid = False; return
+
+        style : int    = win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE)
+        ex_style : int = win32gui.GetWindowLong(self.hwnd, win32con.GWL_EXSTYLE)
         
-        if self.exe_path.find("explorer.exe") != -1 and self.title == "Drag":
+        is_in_taskbar = (style | ex_style) & (win32con.WS_OVERLAPPED | win32con.WS_EX_APPWINDOW | win32con.WS_EX_OVERLAPPEDWINDOW)
+        is_popup = style & win32con.WS_POPUP
+
+        if not is_in_taskbar or is_popup:
             self.valid = False; return
 
         if path_exists_in_list(self.exe_path, whitelisted_paths):
@@ -81,9 +87,6 @@ class WindowApp():
         self.valid = not path_exists_in_list(self.exe_path, blacklisted_paths)
 
     def move(self, x : int, y : int) -> None:
-        if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
-            return
-
         try:
             win32gui.MoveWindow(self.hwnd, int(x), int(y), self.width, self.height, 1)
 
