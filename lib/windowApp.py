@@ -39,9 +39,11 @@ class WindowApp():
         return pyrect.Rect(x, y, width, height)
 
     @property
-    def drag_rect(self):
+    def drag_rect(self) -> Union[pyrect.Rect, None]:
         _rect = self.rect
-        _rect.height = 50
+
+        if _rect is not None:
+            _rect.height = 50
 
         return _rect
 
@@ -137,10 +139,16 @@ class WindowApp():
         self.is_valid = not utility.path_exists_in_list(self.exe_path, blacklisted_paths)
 
     def on_mouse_down(self, pos : Tuple[int, int], is_topmost : bool) -> None:
+        if not win32gui.IsWindow(self.hwnd):
+            return
+
         if is_topmost and self.drag_rect.collidepoint(pos):
             self.is_being_dragged = True
 
     def on_mouse_up(self, pos : Tuple[int, int]) -> None:
+        if not win32gui.IsWindow(self.hwnd):
+            return
+
         self.is_being_dragged = False
 
         if self.is_foreground and self.drag_rect.collidepoint(pos):
@@ -169,21 +177,29 @@ class WindowApp():
 
         self.move(work_area[0] + pos_x, work_area[1] + pos_y)
 
-    def move_simplex_random(self, speed : float, octaves=1, persistence=0.5, lacunarity=2, base=0) -> None:
+    def move_simplex_random(self, speed : float, smoothing_factor : float=0, octaves : int=1, persistence : float=0.5, lacunarity : float=2, base : int=0) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
         noise_x = noise.snoise2(self.noise_time_x, self.noise_time_x, 
             octaves=octaves, persistence=persistence, lacunarity=lacunarity, base=base)
-
         noise_y = noise.snoise2(self.noise_time_y, self.noise_time_y, 
             octaves=octaves, persistence=persistence, lacunarity=lacunarity, base=base)
 
         self.noise_time_x += speed
         self.noise_time_y += speed
 
+        _rect = self.rect
         work_area = self.monitor_info.work_area
-        noise_x = utility.constrain(noise_x, -1, 1, 5, max(work_area[2] - self.width  - 5, 5))
-        noise_y = utility.constrain(noise_y, -1, 1, 5, max(work_area[3] - self.height - 5, 5))
 
-        self.move(work_area[0] + noise_x, work_area[1] + noise_y)
+        noise_x = utility.constrain(noise_x, -1, 1, 5, max(work_area[2] - _rect.width  - 5, 5))
+        noise_x += work_area[0]
+        
+        noise_y = utility.constrain(noise_y, -1, 1, 5, max(work_area[3] - _rect.height - 5, 5))
+        noise_y += work_area[1]
+
+        window_pos = (_rect.x, _rect.y)
+        noise_pos = (noise_x, noise_y)
+        lerped_pos = utility.lerp(window_pos, noise_pos, smoothing_factor)
+
+        self.move(lerped_pos[0], lerped_pos[1])

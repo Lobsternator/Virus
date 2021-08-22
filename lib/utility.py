@@ -1,7 +1,7 @@
 import psutil, win32api, win32con, win32gui, win32process
 
 from .monitorInfo import MonitorInfo
-from typing import List, Union
+from typing import List, Tuple, Union
 
 def sort_windows(windows : List[int]) -> List[int]:
     sorted_windows : List[int] = []
@@ -59,3 +59,9 @@ def clamp(value : float, value_min : float, value_max : float) -> float:
 
 def constrain(value : float, in_min : float, in_max : float, out_min : float, out_max : float) -> float:
     return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+def lerp(pos_1 : Tuple[int, int], pos_2 : Tuple[int, int], factor : float) -> Tuple[int, int]:
+    lerp_x = pos_1[0] * (1 - factor) + pos_2[0] * factor
+    lerp_y = pos_1[1] * (1 - factor) + pos_2[1] * factor
+
+    return (lerp_x, lerp_y)
