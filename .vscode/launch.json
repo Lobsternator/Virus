@@ -12,7 +12,7 @@
             "name": "Virus",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
+            "program": "${workspaceFolder}/program.py",
             "args": ["-b", "Microsoft VS Code"],
             "console": "integratedTerminal"
         }
