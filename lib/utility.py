@@ -75,7 +75,7 @@ def get_window_executable_path(hwnd : int) -> Union[str, None]:
         print(f"WARNING: Couldn't find executable path for window: \'{win32gui.GetWindowText(hwnd)}\'!")
         return None
 
-def get_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
+def get_window_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
     if not win32gui.IsWindow(hwnd):
         return None
 
@@ -83,7 +83,17 @@ def get_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
         return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
     except win32api.error as e:
         if e.args[0] == 1461:
-            print(f"WARNING: Couldn't find monitor info for window: \'{win32gui.GetWindowText(hwnd)}\'! Using default instead.")
+            print(f"WARNING: Couldn't find monitor info from window: \'{win32gui.GetWindowText(hwnd)}\'! Using default instead.")
+            return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
+        else:
+            raise e
+
+def get_point_monitor_info(point : Tuple[int, int]) -> MonitorInfo:
+    try:
+        return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((int(point[0]), int(point[1])))))
+    except win32api.error as e:
+        if e.args[0] == 1461:
+            print(f"WARNING: Couldn't find monitor info from point: ({point[0]}, {point[1]})! Using default instead.")
             return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
         else:
             raise e

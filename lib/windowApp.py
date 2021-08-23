@@ -14,7 +14,7 @@ class WindowApp():
         self.hwnd = hwnd
         self.thread_id = win32process.GetWindowThreadProcessId(self.hwnd)[0]
         self.exe_path = utility.get_window_executable_path(self.hwnd)
-        self.monitor_info = utility.get_monitor_info(self.hwnd)
+        self.monitor_info = utility.get_window_monitor_info(self.hwnd)
         self.is_valid = False
         self.override_drag_detection = False
 
@@ -90,7 +90,7 @@ class WindowApp():
 
         thread_info = self.get_thread_info()
         return bool(thread_info.hwndMoveSize) or self.override_drag_detection
-
+ 
     @property
     def is_taskbar_app(self) -> bool:
         if not self.exists:
@@ -130,27 +130,36 @@ class WindowApp():
         if is_topmost and self.drag_rect.collidepoint(pos):
             self.override_drag_detection = True
 
-    def on_drag_stop(self, pos : Tuple[int, int]) -> None:
+    def on_drag_stop(self, pos : Tuple[int, int], taskbar_rect : pyrect.Rect) -> None:
         if not self.exists:
             return
 
         self.override_drag_detection = False
-        if self.is_foreground and not self.monitor_info.taskbar_rect.collidepoint(pos):
-            self.monitor_info = utility.get_monitor_info(self.hwnd)
+        if self.is_foreground and not taskbar_rect.collidepoint(pos):
+            self.monitor_info = utility.get_window_monitor_info(self.hwnd)
 
     def move(self, x : int, y : int, smoothing_factor : float=0.0) -> None:
         if not self.exists or not self.is_normal:
             return
 
         _rect = self.rect
-        _monitor_rect = self.monitor_info.monitor_rect
+        _work_area = self.monitor_info.work_area
 
         dst_pos = utility.lerp((_rect.x, _rect.y), (x, y), 1 - smoothing_factor)
-        clamped_width = min(_rect.width, _monitor_rect.width)
-        clamped_height = min(_rect.height, _monitor_rect.height)
+
+        x_min = _work_area.x - _rect.width + 10
+        x_max = _work_area.x + _work_area.width - 10
+        clamped_x = utility.clamp(dst_pos[0], x_min, x_max)
+
+        y_min = _work_area.y - _rect.height + 10
+        y_max = _work_area.y + _work_area.height - 10
+        clamped_y = utility.clamp(dst_pos[1], y_min, y_max)
+
+        clamped_width = min(_rect.width, _work_area.width)
+        clamped_height = min(_rect.height, _work_area.height)
 
         try:
-            win32gui.MoveWindow(self.hwnd, dst_pos[0], dst_pos[1], clamped_width, clamped_height, 1)
+            win32gui.MoveWindow(self.hwnd, clamped_x, clamped_y, clamped_width, clamped_height, 1)
 
         except win32gui.error as e:
             if e.args[0] == 5:

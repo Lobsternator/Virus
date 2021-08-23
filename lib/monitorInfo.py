@@ -38,6 +38,4 @@ class MonitorInfo():
             taskbar_width = self.work_area.width
             taskbar_height = self.monitor_rect.height - self.work_area.height
 
-        # Only accounting for one taskbar in a multimonitor setup - FIX IT!
-
         self.taskbar_rect = pyrect.Rect(taskbar_x, taskbar_y, taskbar_width, taskbar_height)

@@ -37,9 +37,11 @@ class Mouse():
                 window.on_drag_start(pos, is_topmost=False)
 
     def drag_stop(self, pos : Tuple[int, int], windows : List[WindowApp]):
+        taskbar_rect = utility.get_point_monitor_info(pos).taskbar_rect
+
         for window in windows:
             if window.is_valid and window.exists:
-                window.on_drag_stop(pos)
+                window.on_drag_stop(pos, taskbar_rect)
 
     def on_mouse_down(self, pos : Tuple[int, int], windows : Dict[int, WindowApp]) -> None:
         topmost_window = self.get_topmost_hovered_window(pos, windows)
