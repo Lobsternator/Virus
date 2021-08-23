@@ -1,5 +1,5 @@
 __author__ = "Julius Edvardsson"
-__version__ = "0.4a"
+__version__ = "0.3.1a"
 __copyright__ = "Copyright Virus Julius Edvardsson 2021 (©)"
 __description__ = "Randomly moves windows using smooth noise."
 
@@ -73,13 +73,7 @@ class Program():
 
                 self.windows[hwnd] = new_window
 
-        windows_to_pop = []
-        for hwnd in self.windows.keys():
-            found_window = len([w for w in win32_windows if w._hWnd == hwnd]) > 0
-
-            if not found_window:
-                windows_to_pop.append(hwnd)
-
+        windows_to_pop = [window.hwnd for window in self.windows.values() if not window.exists]
         for hwnd in windows_to_pop:
             self.windows.pop(hwnd)
 
@@ -87,7 +81,7 @@ class Program():
         self.mouse.process_updates(self.windows)
 
     def main(self, dt : float) -> None:
-        for window in self.windows.values():            
+        for window in self.windows.values():
             if not window.is_valid or window.is_being_dragged:
                 continue
 
@@ -100,7 +94,7 @@ class Program():
         t_end = 1/self.refresh_rate
         t_start = 0
         delta_time = 1/self.refresh_rate
-        
+
         self.is_running = True
         while self.is_running:
             t_start = time.perf_counter()

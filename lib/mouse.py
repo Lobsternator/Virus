@@ -1,8 +1,9 @@
+import time
 import win32api
 
 from . import utility
 from .windowApp import WindowApp
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple, Union
 
 class Mouse():
     def __init__(self) -> None:
@@ -16,34 +17,42 @@ class Mouse():
         hovered_windows : Dict[int, WindowApp] = {}
 
         for window in windows.values():
-            if window.rect.collidepoint(pos):
+            if window.exists and window.rect.collidepoint(pos):
                 hovered_windows[window.hwnd] = window
 
         return hovered_windows
 
+    def get_topmost_hovered_window(self, pos : Tuple[int, int], windows : Dict[int, WindowApp]) -> Union[WindowApp, None]:
+        hovered_windows = self.get_hovered_windows(pos, windows)
+        topmost_hwnd = utility.get_topmost_window(hovered_windows.keys())
+        if topmost_hwnd is None:
+            return None
+
+        topmost_window = hovered_windows.get(topmost_hwnd, None)
+        return topmost_window
+
+    def drag_start(self, pos : Tuple[int, int], windows : List[WindowApp]):
+        for window in windows:
+            if window.is_valid and window.exists:
+                window.on_drag_start(pos, is_topmost=False)
+
+    def drag_stop(self, pos : Tuple[int, int], windows : List[WindowApp]):
+        for window in windows:
+            if window.is_valid and window.exists:
+                window.on_drag_stop(pos)
+
     def on_mouse_down(self, pos : Tuple[int, int], windows : Dict[int, WindowApp]) -> None:
-        try:
-            hovered_windows = self.get_hovered_windows(pos, windows)
-            topmost_hwnd = utility.get_topmost_window(hovered_windows.keys())
-            if topmost_hwnd is None:
-                return
+        topmost_window = self.get_topmost_hovered_window(pos, windows)
+        if topmost_window is None or not topmost_window.is_valid or not topmost_window.exists:
+            self.drag_start(pos, windows.values()); return
 
-            topmost_window = windows.get(topmost_hwnd, None)
-            if topmost_window is None or not topmost_window.is_valid:
-                return
-            
-            topmost_window.on_mouse_down(pos, True)
-            hovered_windows.pop(topmost_window.hwnd)
+        topmost_window.on_drag_start(pos, is_topmost=True)
+        filtered_windows = filter(lambda w: w.hwnd != topmost_window.hwnd, windows.values())
 
-        finally:
-            for window in hovered_windows.values():
-                if window.is_valid:
-                    window.on_mouse_down(pos, False)
+        self.drag_start(pos, filtered_windows)
 
     def on_mouse_up(self, pos : Tuple[int, int], windows : Dict[int, WindowApp]) -> None:
-        for window in windows.values():
-            if window.is_valid:
-                window.on_mouse_up(pos)
+        self.drag_stop(pos, windows.values())
 
     def process_updates(self, windows : Dict[int, WindowApp]) -> None:
         key_state = win32api.GetKeyState(0x01) < 0

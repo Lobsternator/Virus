@@ -4,7 +4,35 @@ with contextlib.redirect_stdout(None):
     from pygame import rect as pyrect
 
 from .monitorInfo import MonitorInfo
+from ctypes import Structure, sizeof
+from ctypes.wintypes import DWORD, HWND, RECT
 from typing import List, Tuple, Union
+
+class GUITHREADINFO(Structure):
+    cbSize : DWORD
+    flags : DWORD
+    hwndActive : HWND
+    hwndFocus : HWND
+    hwndCapture : HWND
+    hwndMenuOwner : HWND
+    hwndMoveSize : HWND
+    hwndCaret : HWND
+    rcCaret : RECT
+
+    _fields_ = [
+		('cbSize', DWORD),
+		('flags', DWORD),
+		('hwndActive', HWND),
+		('hwndFocus', HWND),
+		('hwndCapture', HWND),
+		('hwndMenuOwner', HWND),
+		('hwndMoveSize', HWND),
+		('hwndCaret', HWND),
+		('rcCaret', RECT),
+	]
+
+def create_thread_info():
+    return GUITHREADINFO(cbSize=sizeof(GUITHREADINFO))
 
 def sort_windows(windows : List[int]) -> List[int]:
     sorted_windows : List[int] = []
@@ -34,9 +62,12 @@ def get_topmost_window(windows : List[int]) -> int:
 
     return sorted_windows[0]
 
-def get_window_executable_path(hwnd) -> Union[str, None]:
+def get_window_executable_path(hwnd : int) -> Union[str, None]:
+    if not win32gui.IsWindow(hwnd):
+        return None
+
     pid = win32process.GetWindowThreadProcessId(hwnd)[1]
-    
+
     try:
         return psutil.Process(pid).exe()
 
@@ -45,12 +76,15 @@ def get_window_executable_path(hwnd) -> Union[str, None]:
         return None
 
 def get_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
+    if not win32gui.IsWindow(hwnd):
+        return None
+
     try:
         return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
     except win32api.error as e:
         if e.args[0] == 1461:
-            print(f"WARNING: Couldn't find monitor info for window: \'{win32gui.GetWindowText(hwnd)}\'!")
-            return None
+            print(f"WARNING: Couldn't find monitor info for window: \'{win32gui.GetWindowText(hwnd)}\'! Using default instead.")
+            return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
         else:
             raise e
 
