@@ -16,7 +16,7 @@ class WindowApp():
         self.exe_path = utility.get_window_executable_path(self.hwnd)
         self.monitor_info = utility.get_monitor_info(self.hwnd)
         self.is_valid = False
-        self.override_drag = False
+        self.override_drag_detection = False
 
         self.__thread_info = utility.create_thread_info()
 
@@ -89,7 +89,7 @@ class WindowApp():
             return None
 
         thread_info = self.get_thread_info()
-        return bool(thread_info.hwndMoveSize) or self.override_drag
+        return bool(thread_info.hwndMoveSize) or self.override_drag_detection
 
     @property
     def is_taskbar_app(self) -> bool:
@@ -128,13 +128,13 @@ class WindowApp():
             return
 
         if is_topmost and self.drag_rect.collidepoint(pos):
-            self.override_drag = True
+            self.override_drag_detection = True
 
     def on_drag_stop(self, pos : Tuple[int, int]) -> None:
         if not self.exists:
             return
 
-        self.override_drag = False
+        self.override_drag_detection = False
         if self.is_foreground and not self.monitor_info.taskbar_rect.collidepoint(pos):
             self.monitor_info = utility.get_monitor_info(self.hwnd)
 

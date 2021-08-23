@@ -1,5 +1,5 @@
 __author__ = "Julius Edvardsson"
-__version__ = "0.3.1a"
+__version__ = "0.3.2a"
 __copyright__ = "Copyright Virus Julius Edvardsson 2021 (©)"
 __description__ = "Randomly moves windows using smooth noise."
 

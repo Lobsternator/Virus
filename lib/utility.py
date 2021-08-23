@@ -84,7 +84,7 @@ def get_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
     except win32api.error as e:
         if e.args[0] == 1461:
             print(f"WARNING: Couldn't find monitor info for window: \'{win32gui.GetWindowText(hwnd)}\'! Using default instead.")
-            return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
+            return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
         else:
             raise e
 
