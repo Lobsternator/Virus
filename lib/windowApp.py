@@ -29,14 +29,9 @@ class WindowApp():
     def rect(self) -> Union[pyrect.Rect, None]:
         if not win32gui.IsWindow(self.hwnd):
             return None
-        
-        rect = win32gui.GetWindowRect(self.hwnd)
-        x = rect[0]
-        y = rect[1]
-        width = rect[2] - rect[0]
-        height = rect[3] - rect[1]
 
-        return pyrect.Rect(x, y, width, height)
+        rect = win32gui.GetWindowRect(self.hwnd)
+        return utility.convert_rect(rect)
 
     @property
     def drag_rect(self) -> Union[pyrect.Rect, None]:
@@ -46,38 +41,6 @@ class WindowApp():
             _rect.height = 50
 
         return _rect
-
-    @property
-    def x(self) -> Union[int, None]:
-        if not win32gui.IsWindow(self.hwnd):
-            return None
-        
-        rect = win32gui.GetWindowRect(self.hwnd)
-        return rect[0]
-
-    @property
-    def y(self) -> Union[int, None]:
-        if not win32gui.IsWindow(self.hwnd):
-            return None
-
-        rect = win32gui.GetWindowRect(self.hwnd)
-        return rect[1]
-
-    @property
-    def width(self) -> Union[int, None]:
-        if not win32gui.IsWindow(self.hwnd):
-            return None
-
-        rect = win32gui.GetWindowRect(self.hwnd)
-        return rect[2] - rect[0]
-
-    @property
-    def height(self) -> Union[int, None]:
-        if not win32gui.IsWindow(self.hwnd):
-            return None
-
-        rect = win32gui.GetWindowRect(self.hwnd)
-        return rect[3] - rect[1]
 
     @property
     def is_maximized(self) -> Union[bool, None]:
@@ -117,7 +80,7 @@ class WindowApp():
 
         style    : int = win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE)
         ex_style : int = win32gui.GetWindowLong(self.hwnd, win32con.GWL_EXSTYLE)
-        
+
         is_app = style & (win32con.WS_OVERLAPPED | win32con.WS_OVERLAPPEDWINDOW)
         is_app_ex = ex_style & (win32con.WS_EX_APPWINDOW | win32con.WS_EX_OVERLAPPEDWINDOW)
         is_tool = ex_style & win32con.WS_EX_TOOLWINDOW
@@ -135,7 +98,7 @@ class WindowApp():
 
         if utility.path_exists_in_list(self.exe_path, whitelisted_paths):
             self.is_valid = True; return
-        
+
         self.is_valid = not utility.path_exists_in_list(self.exe_path, blacklisted_paths)
 
     def on_mouse_down(self, pos : Tuple[int, int], is_topmost : bool) -> None:
@@ -154,12 +117,15 @@ class WindowApp():
         if self.is_foreground and self.drag_rect.collidepoint(pos):
             self.monitor_info = utility.get_monitor_info(self.hwnd)
 
-    def move(self, x : int, y : int) -> None:
+    def move(self, x : int, y : int, smoothing_factor : float=0.0) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
+        _rect = self.rect
+        dst_pos = utility.lerp((_rect.x, _rect.y), (x, y), 1 - smoothing_factor)
+
         try:
-            win32gui.MoveWindow(self.hwnd, int(x), int(y), self.width, self.height, 1)
+            win32gui.MoveWindow(self.hwnd, dst_pos[0], dst_pos[1], _rect.width, _rect.height, 1)
 
         except win32gui.error as e:
             if e.args[0] == 5:
@@ -167,17 +133,19 @@ class WindowApp():
             else:
                 raise e
 
-    def move_random(self) -> None:
+    def move_random(self, smoothing_factor : float=0.0) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
-        work_area = self.monitor_info.work_area
-        pos_x = random.randint(5, max(work_area[2] - self.width  - 5, 5))
-        pos_y = random.randint(5, max(work_area[3] - self.height - 5, 5))
+        _rect = self.rect
+        _work_area = self.monitor_info.work_area
 
-        self.move(work_area[0] + pos_x, work_area[1] + pos_y)
+        pos_x = random.randint(5, max(_work_area.width  - _rect.width  - 5, 5))
+        pos_y = random.randint(5, max(_work_area.height - _rect.height - 5, 5))
 
-    def move_simplex_random(self, speed : float, smoothing_factor : float=0, octaves : int=1, persistence : float=0.5, lacunarity : float=2, base : int=0) -> None:
+        self.move(_work_area.x + pos_x, _work_area.y + pos_y, smoothing_factor)
+
+    def move_simplex_random(self, speed : float, smoothing_factor : float=0.0, octaves : int=1, persistence : float=0.5, lacunarity : float=2.0, base : int=0) -> None:
         if not win32gui.IsWindow(self.hwnd) or not self.is_normal:
             return
 
@@ -190,16 +158,9 @@ class WindowApp():
         self.noise_time_y += speed
 
         _rect = self.rect
-        work_area = self.monitor_info.work_area
+        _work_area = self.monitor_info.work_area
 
-        noise_x = utility.constrain(noise_x, -1, 1, 5, max(work_area[2] - _rect.width  - 5, 5))
-        noise_x += work_area[0]
-        
-        noise_y = utility.constrain(noise_y, -1, 1, 5, max(work_area[3] - _rect.height - 5, 5))
-        noise_y += work_area[1]
+        noise_x = utility.constrain(noise_x, -1, 1, 5, max(_work_area.width  - _rect.width  - 5, 5))
+        noise_y = utility.constrain(noise_y, -1, 1, 5, max(_work_area.height - _rect.height - 5, 5))
 
-        window_pos = (_rect.x, _rect.y)
-        noise_pos = (noise_x, noise_y)
-        lerped_pos = utility.lerp(window_pos, noise_pos, smoothing_factor)
-
-        self.move(lerped_pos[0], lerped_pos[1])
+        self.move(_work_area.x + noise_x, _work_area.y + noise_y, smoothing_factor)

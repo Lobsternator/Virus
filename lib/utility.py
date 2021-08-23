@@ -1,4 +1,7 @@
-import psutil, win32api, win32con, win32gui, win32process
+import contextlib, psutil, win32api, win32con, win32gui, win32process
+
+with contextlib.redirect_stdout(None):
+    from pygame import rect as pyrect
 
 from .monitorInfo import MonitorInfo
 from typing import List, Tuple, Union
@@ -51,6 +54,14 @@ def get_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
         else:
             raise e
 
+def convert_rect(win32_rect) -> pyrect.Rect:
+    x = win32_rect[0]
+    y = win32_rect[1]
+    width = win32_rect[2] - win32_rect[0]
+    height = win32_rect[3] - win32_rect[1]
+
+    return pyrect.Rect(x, y, width, height)
+
 def path_exists_in_list(path : str, path_list : List[str]) -> bool:
     return any([path.find(listed_path) != -1 for listed_path in path_list])
 
@@ -64,4 +75,4 @@ def lerp(pos_1 : Tuple[int, int], pos_2 : Tuple[int, int], factor : float) -> Tu
     lerp_x = pos_1[0] * (1 - factor) + pos_2[0] * factor
     lerp_y = pos_1[1] * (1 - factor) + pos_2[1] * factor
 
-    return (lerp_x, lerp_y)
+    return (int(lerp_x), int(lerp_y))
