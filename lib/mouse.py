@@ -1,4 +1,3 @@
-import time
 import win32api
 
 from . import utility
@@ -45,7 +44,7 @@ class Mouse():
 
     def on_mouse_down(self, pos : Tuple[int, int], windows : Dict[int, WindowApp]) -> None:
         topmost_window = self.get_topmost_hovered_window(pos, windows)
-        if topmost_window is None or not topmost_window.is_valid or not topmost_window.exists:
+        if topmost_window is None or not topmost_window.is_taskbar_app or not topmost_window.exists:
             self.drag_start(pos, windows.values()); return
 
         topmost_window.on_drag_start(pos, is_topmost=True)
