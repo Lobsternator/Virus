@@ -6,19 +6,22 @@ __description__ = "Randomly moves windows using smooth noise."
 import argparse, sys
 
 parser = argparse.ArgumentParser(description=__description__)
-parser.add_argument('--speed',            '-sp', nargs=1,   type=float, default=[0.225],
+parser.add_argument('--speed',            '-s',  nargs=1,   type=float, default=[0.225],
                     help='speed when moving a window (min: 0, max: inf, default: 0.225)')
 
-parser.add_argument('--smoothing-factor', '-sm', nargs=1,   type=float, default=[0.85],
+parser.add_argument('--smoothing-factor', '-sf', nargs=1,   type=float, default=[0.85],
                     help='interpolation factor when moving a window (min: 0, max: 1, default: 0.85)')
 
-parser.add_argument('--refresh-rate',     '-r',  nargs=1,   type=float, default=[60.0],
+parser.add_argument('--border-padding',   '-bp', nargs=1,   type=int,   default=[5],
+                    help='prevents windows from coming too close the the edge of the screen, can be negative (min: -inf, max: inf, default: 5)')
+
+parser.add_argument('--refresh-rate',     '-rr', nargs=1,   type=float, default=[60.0],
                     help='number of updates per second (min: 0, max: inf, default: 60.0)')
 
-parser.add_argument('--blacklist',        '-b',  nargs='+', type=str,   default=[],
+parser.add_argument('--blacklist',        '-bl', nargs='+', type=str,   default=[],
                     help='blacklisted executable paths')
 
-parser.add_argument('--whitelist',        '-w',  nargs='+', type=str,   default=[],
+parser.add_argument('--whitelist',        '-wl', nargs='+', type=str,   default=[],
                     help='whitelisted executable paths, overwrites blacklisted paths')
 
 args = parser.parse_args(sys.argv[1:])
@@ -42,6 +45,7 @@ class Program():
 
         self.noise_speed : float = args.speed[0]
         self.smoothing_factor : float = args.smoothing_factor[0]
+        self.border_padding : int = args.border_padding[0]
         self.refresh_rate : float = args.refresh_rate[0]
 
         self.blacklisted_paths : List[str] = [
@@ -86,7 +90,8 @@ class Program():
                 continue
 
             window.move_simplex_random(dt * self.noise_speed, 
-                smoothing_factor=self.smoothing_factor, octaves=3, persistence=12, lacunarity=0.4, base=0)
+                smoothing_factor=self.smoothing_factor, border_padding=self.border_padding, 
+                octaves=3, persistence=12, lacunarity=0.4, base=0)
 
     def run(self) -> None:
         clock = pytime.Clock()

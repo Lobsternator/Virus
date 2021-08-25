@@ -1,11 +1,9 @@
-import contextlib, random, noise, win32con, win32gui, win32process
+import random, noise, win32con, win32gui, win32process
 
-with contextlib.redirect_stdout(None):
-    from pygame import rect as pyrect
-
-from ctypes import byref, windll
 from . import utility
-from typing import List, Tuple, Union
+from .rect import Rect
+from ctypes import byref, windll
+from typing import Iterable, Tuple, Union
 
 user32 = windll.user32
 
@@ -36,7 +34,7 @@ class WindowApp():
         return win32gui.GetWindowText(self.hwnd)
 
     @property
-    def rect(self) -> Union[pyrect.Rect, None]:
+    def rect(self) -> Union[Rect, None]:
         if not self.exists:
             return None
 
@@ -44,7 +42,7 @@ class WindowApp():
         return utility.convert_rect(rect)
 
     @property
-    def drag_rect(self) -> Union[pyrect.Rect, None]:
+    def drag_rect(self) -> Union[Rect, None]:
         _rect = self.rect
 
         if _rect is not None:
@@ -114,7 +112,7 @@ class WindowApp():
         user32.GetGUIThreadInfo(self.thread_id, byref(self.__thread_info))
         return self.__thread_info
 
-    def validate(self, blacklisted_paths : List[str], whitelisted_paths : List[str]) -> None:
+    def validate(self, blacklisted_paths : Iterable[str], whitelisted_paths : Iterable[str]) -> None:
         if not self.is_taskbar_app:
             self.is_valid = False; return
 
@@ -127,15 +125,15 @@ class WindowApp():
         if not self.exists:
             return
 
-        if is_topmost and self.drag_rect.collidepoint(pos):
+        if is_topmost and self.drag_rect.contains_point(pos):
             self.override_drag_detection = True
 
-    def on_drag_stop(self, pos : Tuple[int, int], taskbar_rect : pyrect.Rect) -> None:
+    def on_drag_stop(self, pos : Tuple[int, int], taskbar_rect : Rect) -> None:
         if not self.exists:
             return
 
         self.override_drag_detection = False
-        if self.is_foreground and not taskbar_rect.collidepoint(pos):
+        if self.is_foreground and not taskbar_rect.contains_point(pos):
             self.monitor_info = utility.get_window_monitor_info(self.hwnd)
 
     def move(self, x : int, y : int, smoothing_factor : float=0.0) -> None:
@@ -163,7 +161,7 @@ class WindowApp():
 
         except win32gui.error as e:
             if e.args[0] == 5:
-                print(f"WARNING: No permission to move window: \'{self.title}\' at \'{self.exe_path}\'!")
+                print(f"WARNING: No permission to move window: \'{self.title}\', exe path: \'{self.exe_path}\'!")
             else:
                 raise e
 
@@ -179,7 +177,7 @@ class WindowApp():
 
         self.move(_work_area.x + pos_x, _work_area.y + pos_y, smoothing_factor)
 
-    def move_simplex_random(self, speed : float, smoothing_factor : float=0.0, octaves : int=1, persistence : float=0.5, lacunarity : float=2.0, base : int=0) -> None:
+    def move_simplex_random(self, speed : float, smoothing_factor : float=0.0, border_padding=10, octaves : int=1, persistence : float=0.5, lacunarity : float=2.0, base : int=0) -> None:
         if not self.exists or not self.is_normal:
             return
 
@@ -194,7 +192,12 @@ class WindowApp():
         _rect = self.rect
         _work_area = self.monitor_info.work_area
 
-        noise_x = utility.constrain(noise_x, -1, 1, 5, max(_work_area.width  - _rect.width  - 5, 5))
-        noise_y = utility.constrain(noise_y, -1, 1, 5, max(_work_area.height - _rect.height - 5, 5))
+        noise_x_min = border_padding
+        noise_x_max = max(_work_area.width  - _rect.width  - border_padding, border_padding)
+        noise_y_min = border_padding
+        noise_y_max = max(_work_area.height - _rect.height - border_padding, border_padding)
+
+        noise_x = utility.constrain(noise_x, -1, 1, noise_x_min, noise_x_max)
+        noise_y = utility.constrain(noise_y, -1, 1, noise_y_min, noise_y_max)
 
         self.move(_work_area.x + noise_x, _work_area.y + noise_y, smoothing_factor)

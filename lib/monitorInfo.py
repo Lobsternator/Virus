@@ -1,14 +1,9 @@
-import contextlib
-
-with contextlib.redirect_stdout(None):
-    from pygame import rect as pyrect
-
-from . import utility
+from .rect import Rect
 
 class MonitorInfo():
-    def __init__(self, monitor_info : dict) -> None:
-        self.monitor_rect = utility.convert_rect(monitor_info.get("Monitor"))
-        self.work_area = utility.convert_rect(monitor_info.get("Work"))
+    def __init__(self, monitor_rect : Rect, work_rect : Rect) -> None:
+        self.monitor_rect = monitor_rect
+        self.work_area = work_rect
 
         if self.work_area.height < self.monitor_rect.height and self.work_area.y == self.monitor_rect.y:
             # ----- Bottom -----
@@ -38,4 +33,4 @@ class MonitorInfo():
             taskbar_width = self.work_area.width
             taskbar_height = self.monitor_rect.height - self.work_area.height
 
-        self.taskbar_rect = pyrect.Rect(taskbar_x, taskbar_y, taskbar_width, taskbar_height)
+        self.taskbar_rect = Rect(taskbar_x, taskbar_y, taskbar_width, taskbar_height)
