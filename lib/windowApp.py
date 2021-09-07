@@ -3,8 +3,8 @@ import contextlib, random, noise, win32con, win32gui, win32process
 with contextlib.redirect_stdout(None):
     from pygame import rect as pyrect
 
-from ctypes import byref, windll
 from . import utility
+from ctypes import byref, windll
 from typing import List, Tuple, Union
 
 user32 = windll.user32
