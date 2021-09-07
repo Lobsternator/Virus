@@ -2,7 +2,7 @@ import win32api
 
 from . import utility
 from .windowApp import WindowApp
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterable, Tuple, Union
 
 class Mouse():
     def __init__(self) -> None:
@@ -16,7 +16,7 @@ class Mouse():
         hovered_windows : Dict[int, WindowApp] = {}
 
         for window in windows.values():
-            if window.exists and window.rect.collidepoint(pos):
+            if window.exists and window.rect.contains_point(pos):
                 hovered_windows[window.hwnd] = window
 
         return hovered_windows
@@ -30,12 +30,12 @@ class Mouse():
         topmost_window = hovered_windows.get(topmost_hwnd, None)
         return topmost_window
 
-    def drag_start(self, pos : Tuple[int, int], windows : List[WindowApp]):
+    def drag_start(self, pos : Tuple[int, int], windows : Iterable[WindowApp]):
         for window in windows:
             if window.is_valid and window.exists:
                 window.on_drag_start(pos, is_topmost=False)
 
-    def drag_stop(self, pos : Tuple[int, int], windows : List[WindowApp]):
+    def drag_stop(self, pos : Tuple[int, int], windows : Iterable[WindowApp]):
         taskbar_rect = utility.get_point_monitor_info(pos).taskbar_rect
 
         for window in windows:
@@ -44,7 +44,7 @@ class Mouse():
 
     def on_mouse_down(self, pos : Tuple[int, int], windows : Dict[int, WindowApp]) -> None:
         topmost_window = self.get_topmost_hovered_window(pos, windows)
-        if topmost_window is None or not topmost_window.is_valid or not topmost_window.exists:
+        if topmost_window is None or not topmost_window.is_taskbar_app or not topmost_window.exists:
             self.drag_start(pos, windows.values()); return
 
         topmost_window.on_drag_start(pos, is_topmost=True)

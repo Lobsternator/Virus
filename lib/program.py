@@ -16,6 +16,7 @@ class Program():
 
         self.noise_speed : float = args.speed[0]
         self.smoothing_factor : float = args.smoothing_factor[0]
+        self.border_padding : int = args.border_padding[0]
         self.refresh_rate : float = args.refresh_rate[0]
 
         self.blacklisted_paths : List[str] = [
@@ -60,7 +61,8 @@ class Program():
                 continue
 
             window.move_simplex_random(dt * self.noise_speed, 
-                smoothing_factor=self.smoothing_factor, octaves=3, persistence=12, lacunarity=0.4, base=0)
+                smoothing_factor=self.smoothing_factor, border_padding=self.border_padding, 
+                octaves=3, persistence=12, lacunarity=0.4, base=0)
 
     def run(self) -> None:
         clock = pytime.Clock()

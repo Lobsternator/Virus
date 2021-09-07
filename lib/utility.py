@@ -1,12 +1,10 @@
-import contextlib, psutil, win32api, win32con, win32gui, win32process
-
-with contextlib.redirect_stdout(None):
-    from pygame import rect as pyrect
+import psutil, win32api, win32con, win32gui, win32process
 
 from .monitorInfo import MonitorInfo
+from .rect import Rect
 from ctypes import Structure, sizeof
 from ctypes.wintypes import DWORD, HWND, RECT
-from typing import List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 class GUITHREADINFO(Structure):
     cbSize : DWORD
@@ -34,7 +32,7 @@ class GUITHREADINFO(Structure):
 def create_thread_info():
     return GUITHREADINFO(cbSize=sizeof(GUITHREADINFO))
 
-def sort_windows(windows : List[int]) -> List[int]:
+def sort_windows(windows : Iterable[int]) -> List[int]:
     sorted_windows : List[int] = []
 
     top_window = win32gui.FindWindow(None, None)
@@ -55,7 +53,7 @@ def sort_windows(windows : List[int]) -> List[int]:
 
     return sorted_windows
 
-def get_topmost_window(windows : List[int]) -> int:
+def get_topmost_window(windows : Iterable[int]) -> int:
     sorted_windows = sort_windows(windows)
     if len(sorted_windows) == 0:
         return None
@@ -75,39 +73,51 @@ def get_window_executable_path(hwnd : int) -> Union[str, None]:
         print(f"WARNING: Couldn't find executable path for window: \'{win32gui.GetWindowText(hwnd)}\'!")
         return None
 
-def get_window_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
-    if not win32gui.IsWindow(hwnd):
-        return None
-
-    try:
-        return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
-    except win32api.error as e:
-        if e.args[0] == 1461:
-            print(f"WARNING: Couldn't find monitor info from window: \'{win32gui.GetWindowText(hwnd)}\'! Using default instead.")
-            return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
-        else:
-            raise e
-
-def get_point_monitor_info(point : Tuple[int, int]) -> MonitorInfo:
-    try:
-        return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((int(point[0]), int(point[1])))))
-    except win32api.error as e:
-        if e.args[0] == 1461:
-            print(f"WARNING: Couldn't find monitor info from point: ({point[0]}, {point[1]})! Using default instead.")
-            return MonitorInfo(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
-        else:
-            raise e
-
-def convert_rect(win32_rect) -> pyrect.Rect:
+def convert_rect(win32_rect : Tuple[int, int, int, int]) -> Rect:
     x = win32_rect[0]
     y = win32_rect[1]
     width = win32_rect[2] - win32_rect[0]
     height = win32_rect[3] - win32_rect[1]
 
-    return pyrect.Rect(x, y, width, height)
+    return Rect(x, y, width, height)
 
-def path_exists_in_list(path : str, path_list : List[str]) -> bool:
-    return any([path.find(listed_path) != -1 for listed_path in path_list])
+def convert_monitor_info(win32_monitor_info : Dict[str, Tuple[int, int, int, int]]) -> MonitorInfo:
+    monitor_rect = convert_rect(win32_monitor_info.get("Monitor"))
+    work_area = convert_rect(win32_monitor_info.get("Work"))
+
+    return MonitorInfo(monitor_rect, work_area)
+
+def get_window_monitor_info(hwnd : int) -> Union[MonitorInfo, None]:
+    if not win32gui.IsWindow(hwnd):
+        return None
+
+    try:
+        return convert_monitor_info(win32api.GetMonitorInfo(win32api.MonitorFromWindow(hwnd)))
+
+    except win32api.error as e:
+        if e.args[0] == 1461:
+            print(f"WARNING: Couldn't find monitor info from window: \'{win32gui.GetWindowText(hwnd)}\'! Using default instead.")
+            return convert_monitor_info(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
+        else:
+            raise e
+
+def get_point_monitor_info(point : Tuple[int, int]) -> MonitorInfo:
+    try:
+        return convert_monitor_info(win32api.GetMonitorInfo(win32api.MonitorFromPoint((int(point[0]), int(point[1])))))
+        
+    except win32api.error as e:
+        if e.args[0] == 1461:
+            print(f"WARNING: Couldn't find monitor info from point: ({point[0]}, {point[1]})! Using default instead.")
+            return convert_monitor_info(win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0))))
+        else:
+            raise e
+
+def path_exists_in_list(path : str, path_list : Iterable[str]) -> bool:
+    for p in path_list:
+        if path.find(p) != -1:
+            return True
+
+    return False
 
 def clamp(value : float, value_min : float, value_max : float) -> float:
     return min(max(value, value_min), value_max)
@@ -116,7 +126,7 @@ def constrain(value : float, in_min : float, in_max : float, out_min : float, ou
     return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def lerp(pos_1 : Tuple[int, int], pos_2 : Tuple[int, int], factor : float) -> Tuple[int, int]:
-    lerp_x = pos_1[0] * (1 - factor) + pos_2[0] * factor
-    lerp_y = pos_1[1] * (1 - factor) + pos_2[1] * factor
-
+    lerp_x = pos_1[0] + (pos_2[0] - pos_1[0]) * factor
+    lerp_y = pos_1[1] + (pos_2[1] - pos_1[1]) * factor
+    
     return (int(lerp_x), int(lerp_y))
