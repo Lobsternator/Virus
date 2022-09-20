@@ -2,4 +2,5 @@ noise
 psutil
 pygame
 pyinstaller
+pyautogui
 pywin32
